@@ -1,0 +1,33 @@
+name: "Golang CodeQL"
+
+on:
+  workflow_call: {}
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: go
+            build-mode: autobuild
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: CodeQL Analysis
+        uses: ./actions/codeql
+        with:
+          language: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
