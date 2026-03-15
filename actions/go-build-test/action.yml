@@ -1,0 +1,35 @@
+name: Go Build and Test
+description: Lint, build, test, and upload coverage for a Go project
+
+inputs:
+  go-version:
+    description: "Go version to use"
+    required: false
+    default: "1.26"
+  codecov-token:
+    description: "Codecov token for uploading coverage reports"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Go environment
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ inputs.go-version }}
+
+    - name: Lint
+      uses: golangci/golangci-lint-action@v9
+
+    - name: Build
+      shell: bash
+      run: go build -v ./...
+
+    - name: Test
+      shell: bash
+      run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      env:
+        CODECOV_TOKEN: ${{ inputs.codecov-token }}

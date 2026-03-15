@@ -1,0 +1,96 @@
+name: Releaser
+description: Publish a Go project via GoReleaser with Docker, Snapcraft, and Chocolatey
+
+inputs:
+  go-version:
+    description: "Go version to use"
+    required: false
+    default: "1.26"
+  package-name:
+    description: "Package name for Snapcraft and Chocolatey status checks"
+    required: true
+  dockerhub-username:
+    description: "Docker Hub username"
+    required: true
+  dockerhub-token:
+    description: "Docker Hub token"
+    required: true
+  snapcraft-store-credentials:
+    description: "Snapcraft store credentials"
+    required: true
+  chocolatey-api-key:
+    description: "Chocolatey API key"
+    required: true
+  github-token:
+    description: "GitHub PAT for GoReleaser"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Go environment
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ inputs.go-version }}
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v4
+      with:
+        username: ${{ inputs.dockerhub-username }}
+        password: ${{ inputs.dockerhub-token }}
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v4.1.0
+
+    - name: Install Syft
+      uses: anchore/sbom-action/download-syft@v0
+
+    # https://github.com/goreleaser/goreleaser/issues/1715#issuecomment-667002748
+    # https://github.com/goreleaser/goreleaser/issues/4816
+    - name: Install Snapcraft
+      shell: bash
+      run: |
+        sudo apt-get --quiet update
+        sudo apt-get --no-install-suggests --no-install-recommends --quiet --yes install musl-tools snapd
+        sudo snap install snapcraft --classic
+        snapcraft status ${{ inputs.package-name }}
+        mkdir -p $HOME/.cache/snapcraft/download
+        mkdir -p $HOME/.cache/snapcraft/stage-packages
+      env:
+        SNAPCRAFT_STORE_CREDENTIALS: ${{ inputs.snapcraft-store-credentials }}
+
+    - name: Install Chocolatey
+      shell: bash
+      run: |
+        sudo apt-get --quiet update
+        sudo apt-get --no-install-suggests --no-install-recommends --quiet --yes install dirmngr ca-certificates gnupg
+        sudo gpg --homedir /tmp --no-default-keyring --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+        echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/debian stable-buster main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
+        sudo apt-get --quiet update
+        sudo apt-get --no-install-suggests --no-install-recommends --quiet --yes install mono-devel
+        mkdir -p /opt/chocolatey
+        wget -q -O - "https://github.com/chocolatey/choco/releases/download/${CHOCOLATEY_VERSION}/chocolatey.v${CHOCOLATEY_VERSION}.tar.gz" | tar -xz -C "/opt/chocolatey"
+        echo '#!/bin/bash' >> /usr/local/bin/choco
+        echo 'mono /opt/chocolatey/choco.exe $@' >> /usr/local/bin/choco
+        chmod +x /usr/local/bin/choco
+        choco upgrade chocolatey
+        choco info ${{ inputs.package-name }}
+      env:
+        CHOCOLATEY_VERSION: 2.6.0
+
+    - uses: goreleaser/goreleaser-action@v7
+      with:
+        distribution: goreleaser
+        version: latest
+        args: release --clean
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        SNAPCRAFT_STORE_CREDENTIALS: ${{ inputs.snapcraft-store-credentials }}
+        CHOCOLATEY_API_KEY: ${{ inputs.chocolatey-api-key }}
