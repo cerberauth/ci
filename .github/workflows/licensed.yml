@@ -1,0 +1,55 @@
+# Checks the statuses of cached dependency licenses using the Licensed tool.
+# When triggered manually (workflow_dispatch), updates and commits the license cache.
+# See: https://github.com/licensee/licensed
+name: "Licensed"
+
+on:
+  workflow_call: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  licensed:
+    name: Check Licenses
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ruby
+
+      - uses: licensee/setup-licensed@v1.3.2
+        with:
+          version: 4.x
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - if: ${{ github.event_name == 'workflow_dispatch' }}
+        name: Update Licenses
+        run: licensed cache
+
+      - if: ${{ github.event_name == 'workflow_dispatch' }}
+        name: Commit Licenses
+        run: |
+          git config --local user.email "licensed-ci@users.noreply.github.com"
+          git config --local user.name "licensed-ci"
+          git add .
+          git commit -m "Auto-update license files"
+          git push
+
+      - name: Check Licenses
+        run: licensed status
