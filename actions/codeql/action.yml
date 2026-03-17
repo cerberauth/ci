@@ -8,6 +8,14 @@ inputs:
   build-mode:
     description: "The build mode to use"
     required: true
+  config-file:
+    description: "Path to the CodeQL config file (optional)"
+    required: false
+    default: ""
+  source-root:
+    description: "Source root directory for CodeQL analysis (optional)"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -20,6 +28,8 @@ runs:
       with:
         languages: ${{ inputs.language }}
         build-mode: ${{ inputs.build-mode }}
+        config-file: ${{ inputs.config-file }}
+        source-root: ${{ inputs.source-root }}
 
     - name: Run manual build steps
       if: inputs.build-mode == 'manual'
