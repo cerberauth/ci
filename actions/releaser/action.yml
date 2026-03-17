@@ -1,5 +1,5 @@
 name: Releaser
-description: Publish a Go project via GoReleaser with Docker, Snapcraft, and Chocolatey
+description: Publish a Go project via GoReleaser with Docker, Snapcraft, Homebrew, Scoop, AUR, Winget, nfpm, and Chocolatey
 
 inputs:
   go-version:
@@ -7,7 +7,7 @@ inputs:
     required: false
     default: "1.26"
   package-name:
-    description: "Package name for Snapcraft and Chocolatey status checks"
+    description: "Package name for Snapcraft status check"
     required: true
   dockerhub-username:
     description: "Docker Hub username"
@@ -19,10 +19,15 @@ inputs:
     description: "Snapcraft store credentials"
     required: true
   chocolatey-api-key:
-    description: "Chocolatey API key"
-    required: true
+    description: "Chocolatey API key (optional, skip if project does not publish to Chocolatey)"
+    required: false
+    default: ""
+  aur-key:
+    description: "AUR SSH private key (optional, skip if project does not publish to AUR)"
+    required: false
+    default: ""
   github-token:
-    description: "GitHub PAT for GoReleaser"
+    description: "GitHub PAT for GoReleaser (Homebrew tap, Scoop bucket, Winget PRs)"
     required: true
 
 runs:
@@ -32,6 +37,12 @@ runs:
       uses: actions/setup-go@v6
       with:
         go-version: ${{ inputs.go-version }}
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v4
 
     - name: Login to Docker Hub
       uses: docker/login-action@v4
@@ -67,6 +78,7 @@ runs:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ inputs.snapcraft-store-credentials }}
 
     - name: Install Chocolatey
+      if: ${{ inputs.chocolatey-api-key != '' }}
       shell: bash
       run: |
         sudo apt-get --quiet update
@@ -94,3 +106,4 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token }}
         SNAPCRAFT_STORE_CREDENTIALS: ${{ inputs.snapcraft-store-credentials }}
         CHOCOLATEY_API_KEY: ${{ inputs.chocolatey-api-key }}
+        AUR_KEY: ${{ inputs.aur-key }}
