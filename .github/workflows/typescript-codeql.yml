@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: ".github/codeql/codeql-config.yml"
+      source-root:
+        description: "Source root directory for CodeQL analysis"
+        required: false
+        type: string
+        default: "src"
 
 jobs:
   analyze:
@@ -36,3 +41,4 @@ jobs:
           language: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           config-file: ${{ inputs.config-file }}
+          source-root: ${{ inputs.source-root }}
