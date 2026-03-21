@@ -1,0 +1,97 @@
+name: "npm Publish"
+
+on:
+  workflow_call:
+    inputs:
+      package-manager:
+        description: "Package manager to use (npm or pnpm)"
+        required: false
+        type: string
+        default: "npm"
+      node-version-file:
+        description: "Path to the Node.js version file"
+        required: false
+        type: string
+        default: ".node-version"
+      build-command:
+        description: "Command to build the project before publishing"
+        required: false
+        type: string
+        default: ""
+      publish-command:
+        description: "Command to publish the package"
+        required: false
+        type: string
+        default: "npm publish"
+      publish-npm:
+        description: "Publish to npm registry"
+        required: false
+        type: boolean
+        default: true
+      publish-github:
+        description: "Publish to GitHub Package Registry"
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      npm-token:
+        description: "npm registry token (required when publish-npm is true)"
+        required: false
+      github-token:
+        description: "GitHub token for GitHub Package Registry (required when publish-github is true)"
+        required: false
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        if: inputs.package-manager == 'pnpm'
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ${{ inputs.node-version-file }}
+          cache: ${{ inputs.package-manager }}
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies (npm)
+        if: inputs.package-manager == 'npm'
+        run: npm ci
+
+      - name: Install dependencies (pnpm)
+        if: inputs.package-manager == 'pnpm'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        if: inputs.build-command != ''
+        run: ${{ inputs.build-command }}
+
+      - name: Publish to npm
+        if: inputs.publish-npm
+        run: ${{ inputs.publish-command }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+          NPM_CONFIG_PROVENANCE: "true"
+
+      - name: Setup GitHub Package Registry auth
+        if: inputs.publish-github
+        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.github-token }}" >> ~/.npmrc
+
+      - name: Publish to GitHub Package Registry
+        if: inputs.publish-github
+        run: ${{ inputs.publish-command }} --registry https://npm.pkg.github.com
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.github-token }}
+          NPM_CONFIG_PROVENANCE: "true"
