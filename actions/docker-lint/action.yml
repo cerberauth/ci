@@ -1,0 +1,19 @@
+name: "Lint Dockerfile"
+description: "Checkout and lint a Dockerfile using Hadolint"
+
+inputs:
+  dockerfile:
+    description: "Path to the Dockerfile to lint"
+    required: false
+    default: "Dockerfile"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Lint Dockerfile 🐳
+      uses: hadolint/hadolint-action@v3.3.0
+      with:
+        dockerfile: ${{ inputs.dockerfile }}
