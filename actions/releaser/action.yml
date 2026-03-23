@@ -1,14 +1,19 @@
 name: Releaser
-description: Publish a Go project via GoReleaser with Docker, Snapcraft, Homebrew, Scoop, AUR, Winget, nfpm, and Chocolatey
+description: Publish a project via GoReleaser with Docker, Snapcraft, Homebrew, Scoop, AUR, Winget, nfpm, and Chocolatey
 
 inputs:
+  setup-go:
+    description: "Set up Go environment before releasing"
+    required: false
+    default: "true"
   go-version:
-    description: "Go version to use"
+    description: "Go version to use (only used when setup-go is true)"
     required: false
     default: "1.26"
   package-name:
-    description: "Package name for Snapcraft status check"
-    required: true
+    description: "Package name for Snapcraft status check (skip Snapcraft if empty)"
+    required: false
+    default: ""
   dockerhub-username:
     description: "Docker Hub username"
     required: true
@@ -16,8 +21,9 @@ inputs:
     description: "Docker Hub token"
     required: true
   snapcraft-store-credentials:
-    description: "Snapcraft store credentials"
-    required: true
+    description: "Snapcraft store credentials (required when package-name is set)"
+    required: false
+    default: ""
   chocolatey-api-key:
     description: "Chocolatey API key (optional, skip if project does not publish to Chocolatey)"
     required: false
@@ -34,6 +40,7 @@ runs:
   using: composite
   steps:
     - name: Setup Go environment
+      if: ${{ inputs.setup-go == 'true' }}
       uses: actions/setup-go@v6
       with:
         go-version: ${{ inputs.go-version }}
@@ -66,6 +73,7 @@ runs:
     # https://github.com/goreleaser/goreleaser/issues/1715#issuecomment-667002748
     # https://github.com/goreleaser/goreleaser/issues/4816
     - name: Install Snapcraft
+      if: ${{ inputs.package-name != '' }}
       shell: bash
       run: |
         sudo apt-get --quiet update
