@@ -1,16 +1,36 @@
 name: "Node.js Build and Test"
 description: "Setup Node.js, install dependencies, check format, lint, and run tests"
 
+inputs:
+  node-version-file:
+    description: "Path to the Node.js version file (.node-version, .nvmrc, etc.). Auto-detects .node-version then .nvmrc if not specified."
+    required: false
+    default: ""
+
 runs:
   using: "composite"
   steps:
     - name: Checkout
       uses: actions/checkout@v6
 
+    - name: Detect Node.js version file
+      id: detect-node-version-file
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.node-version-file }}" ]; then
+          echo "node-version-file=${{ inputs.node-version-file }}" >> $GITHUB_OUTPUT
+        elif [ -f ".node-version" ]; then
+          echo "node-version-file=.node-version" >> $GITHUB_OUTPUT
+        elif [ -f ".nvmrc" ]; then
+          echo "node-version-file=.nvmrc" >> $GITHUB_OUTPUT
+        else
+          echo "node-version-file=.node-version" >> $GITHUB_OUTPUT
+        fi
+
     - name: Setup Node.js
       uses: actions/setup-node@v6
       with:
-        node-version-file: .node-version
+        node-version-file: ${{ steps.detect-node-version-file.outputs.node-version-file }}
         cache: npm
 
     - name: Install Dependencies
