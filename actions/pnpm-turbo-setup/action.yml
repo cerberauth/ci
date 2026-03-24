@@ -10,6 +10,10 @@ inputs:
     description: "Number of commits to fetch. 0 fetches all history."
     required: false
     default: "1"
+  registry-url:
+    description: "npm registry URL to configure for publishing (e.g. https://registry.npmjs.org)."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -41,6 +45,7 @@ runs:
       with:
         node-version-file: ${{ steps.detect-node-version-file.outputs.node-version-file }}
         cache: pnpm
+        registry-url: ${{ inputs.registry-url }}
 
     - name: Restore Turborepo cache
       uses: actions/cache@v5
