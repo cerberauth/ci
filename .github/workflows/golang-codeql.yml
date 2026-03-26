@@ -1,7 +1,12 @@
 name: "Golang CodeQL"
 
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      go-version:
+        description: "Go version to use for CodeQL analysis"
+        type: string
+        default: "1.26"
 
 jobs:
   analyze:
@@ -23,6 +28,12 @@ jobs:
             build-mode: autobuild
 
     steps:
+      - name: Setup Go environment
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ inputs.go-version }}
+
       - name: CodeQL Analysis
         uses: cerberauth/ci/actions/codeql@main
         with:
