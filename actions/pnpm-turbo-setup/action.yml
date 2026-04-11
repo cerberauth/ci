@@ -24,7 +24,7 @@ runs:
         fetch-depth: ${{ inputs.fetch-depth }}
 
     - name: Setup pnpm
-      uses: pnpm/action-setup@v5
+      uses: pnpm/action-setup@v6
 
     - name: Detect Node.js version file
       id: detect-node-version-file
