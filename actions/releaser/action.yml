@@ -35,6 +35,18 @@ inputs:
   github-token:
     description: "GitHub PAT for GoReleaser (Homebrew tap, Scoop bucket, Winget PRs)"
     required: true
+  skip:
+    description: "Comma-separated GoReleaser publishers to skip (aur,brew,chocolatey,docker,scoop,snapcraft,winget)"
+    required: false
+    default: ""
+  only:
+    description: "Publish only to this publisher — skips all others (aur,brew,chocolatey,docker,scoop,snapcraft,winget). Overrides skip."
+    required: false
+    default: ""
+  goreleaser-current-tag:
+    description: "Override the current tag used by GoReleaser (GORELEASER_CURRENT_TAG)"
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -105,13 +117,39 @@ runs:
       env:
         CHOCOLATEY_VERSION: 2.6.0
 
+    - name: Compute GoReleaser args
+      id: goreleaser-args
+      shell: bash
+      run: |
+        ALL_PUBLISHERS="aur brew chocolatey docker ko krew nfpm nix scoop snapcraft winget"
+        SKIP="${{ inputs.skip }}"
+        ONLY="${{ inputs.only }}"
+
+        if [ -n "$ONLY" ]; then
+          ONLY_LIST=$(echo "$ONLY" | tr ',' ' ')
+          SKIP_LIST=""
+          for pub in $ALL_PUBLISHERS; do
+            found=0
+            for only_pub in $ONLY_LIST; do
+              [ "$pub" = "$only_pub" ] && found=1 && break
+            done
+            [ $found -eq 0 ] && SKIP_LIST="${SKIP_LIST:+$SKIP_LIST,}$pub"
+          done
+          SKIP="$SKIP_LIST"
+        fi
+
+        ARGS="release --clean"
+        [ -n "$SKIP" ] && ARGS="$ARGS --skip=$SKIP"
+        echo "args=$ARGS" >> "$GITHUB_OUTPUT"
+
     - uses: goreleaser/goreleaser-action@v7
       with:
         distribution: goreleaser
         version: latest
-        args: release --clean
+        args: ${{ steps.goreleaser-args.outputs.args }}
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
         SNAPCRAFT_STORE_CREDENTIALS: ${{ inputs.snapcraft-store-credentials }}
         CHOCOLATEY_API_KEY: ${{ inputs.chocolatey-api-key }}
         AUR_KEY: ${{ inputs.aur-key }}
+        GORELEASER_CURRENT_TAG: ${{ inputs.goreleaser-current-tag }}
