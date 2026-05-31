@@ -9,6 +9,10 @@ inputs:
   codecov-token:
     description: "Codecov token for uploading coverage reports"
     required: true
+  exclude:
+    description: "Packages to exclude (regex for grep -vE)"
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -27,7 +31,14 @@ runs:
 
     - name: Test
       shell: bash
-      run: go test -coverprofile=coverage.out -covermode=atomic ./...
+      env:
+        EXCLUDE: ${{ inputs.exclude }}
+      run: |
+        if [ -z "$EXCLUDE" ]; then
+          go test -coverprofile=coverage.out -covermode=atomic ./...
+        else
+          go test -coverprofile=coverage.out -covermode=atomic $(go list ./... | grep -vE "$EXCLUDE")
+        fi
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v6
