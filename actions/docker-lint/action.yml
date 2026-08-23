@@ -6,6 +6,10 @@ inputs:
     description: "Path to the Dockerfile to lint"
     required: false
     default: "Dockerfile"
+  ignore:
+    description: "A comma separated string of rules to ignore"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -17,3 +21,4 @@ runs:
       uses: hadolint/hadolint-action@v3.4.0
       with:
         dockerfile: ${{ inputs.dockerfile }}
+        ignore: ${{ inputs.ignore }}
