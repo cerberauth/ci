@@ -152,9 +152,8 @@ runs:
         fi
 
         if [ "${{ inputs.dry-run }}" = "true" ]; then
-          # snapshot mode never publishes, so signing/pushing would fail with no artifacts to sign/push
+          # snapshot mode never publishes, so signing would fail with no artifacts to sign
           [[ ",$SKIP," != *",sign,"* ]] && SKIP="${SKIP:+$SKIP,}sign"
-          [[ ",$SKIP," != *",docker-sign,"* ]] && SKIP="${SKIP:+$SKIP,}docker-sign"
           ARGS="release --clean --snapshot"
         else
           ARGS="release --clean"
