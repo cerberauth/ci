@@ -13,7 +13,7 @@ permissions:
 jobs:
   licensed:
     name: Check Licenses
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - name: Checkout
