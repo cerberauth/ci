@@ -9,7 +9,7 @@ inputs:
   go-version:
     description: "Go version to use (only used when setup-go is true)"
     required: false
-    default: "1.26"
+    default: "1.27"
   package-name:
     description: "Package name for Snapcraft status check (skip Snapcraft if empty)"
     required: false
