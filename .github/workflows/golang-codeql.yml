@@ -6,7 +6,7 @@ on:
       go-version:
         description: "Go version to use for CodeQL analysis"
         type: string
-        default: "1.26"
+        default: "1.27"
 
 jobs:
   analyze:
