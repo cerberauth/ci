@@ -1,0 +1,8 @@
+name: CerberAuth TypeScript Action CodeQL Configuration
+
+paths-ignore:
+  - node_modules
+  - dist
+  - coverage
+  - __tests__
+  - __fixtures__
