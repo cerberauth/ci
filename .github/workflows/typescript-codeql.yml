@@ -4,10 +4,10 @@ on:
   workflow_call:
     inputs:
       config-file:
-        description: "Path to the CodeQL config file"
+        description: "Path to the CodeQL config file. Defaults to the shared CerberAuth config in this repo."
         required: false
         type: string
-        default: ".github/codeql/codeql-config.yml"
+        default: "cerberauth/ci/.github/codeql/typescript-config.yml@main"
       source-root:
         description: "Source root directory for CodeQL analysis"
         required: false
