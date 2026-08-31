@@ -6,6 +6,18 @@ inputs:
     description: "Path to the Node.js version file (.node-version, .nvmrc, etc.). Auto-detects .node-version then .nvmrc if not specified."
     required: false
     default: ""
+  coverage-command:
+    description: "Command run after the test step to generate a coverage report (e.g. 'npm run coverage'). Skipped when empty."
+    required: false
+    default: ""
+  codecov:
+    description: "Upload coverage to Codecov after the coverage command runs."
+    required: false
+    default: "false"
+  codecov-token:
+    description: "Codecov upload token (required for private repositories)."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -48,3 +60,15 @@ runs:
     - name: Test
       shell: bash
       run: npm run ci-test
+
+    - name: Coverage
+      if: inputs.coverage-command != ''
+      shell: bash
+      run: ${{ inputs.coverage-command }}
+
+    - name: Upload coverage to Codecov
+      if: inputs.coverage-command != '' && inputs.codecov == 'true'
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        fail_ci_if_error: false
