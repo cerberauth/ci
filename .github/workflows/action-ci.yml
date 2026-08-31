@@ -1,0 +1,41 @@
+name: "Action CI"
+
+on:
+  workflow_call:
+    inputs:
+      node-version-file:
+        description: "Path to the Node.js version file. Auto-detects .node-version then .nvmrc when empty."
+        required: false
+        type: string
+        default: ""
+      coverage-command:
+        description: "Command run after tests to generate coverage. Skipped when empty."
+        required: false
+        type: string
+        default: "npm run coverage"
+      codecov:
+        description: "Upload coverage to Codecov."
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      codecov-token:
+        description: "Codecov upload token (required for private repositories)."
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  test-typescript:
+    name: TypeScript Tests
+    runs-on: ubuntu-slim
+
+    steps:
+      - name: Build and Test
+        uses: cerberauth/ci/actions/node-build-test@main
+        with:
+          node-version-file: ${{ inputs.node-version-file }}
+          coverage-command: ${{ inputs.coverage-command }}
+          codecov: ${{ inputs.codecov }}
+          codecov-token: ${{ secrets.codecov-token }}

@@ -1,0 +1,55 @@
+# Keeps the moving major-version tag (e.g. v1) and the releases/v1 branch in
+# sync with a freshly published GitHub Release. JavaScript actions are consumed
+# as `uses: owner/repo@v1`, so the major tag must point at the latest release.
+name: "Action Release"
+
+on:
+  workflow_call:
+    inputs:
+      create-major-branch:
+        description: "Create a releases/vN branch on the first release of a major version"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  major-tag:
+    name: Sync major version tag
+    runs-on: ubuntu-slim
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Update major version tag and branch
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          CREATE_MAJOR_BRANCH: ${{ inputs.create-major-branch }}
+        run: |
+          set -euo pipefail
+
+          if ! echo "$RELEASE_TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Release tag '$RELEASE_TAG' is not in vX.Y.Z format; nothing to do."
+            exit 0
+          fi
+
+          major="${RELEASE_TAG%%.*}" # v1.2.3 -> v1
+
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -f -a "$major" -m "Sync $major tag with $RELEASE_TAG"
+          git push origin "refs/tags/$major" --force
+          echo "Pointed $major at $RELEASE_TAG"
+
+          if [ "$CREATE_MAJOR_BRANCH" = "true" ] && \
+             ! git ls-remote --exit-code --heads origin "releases/$major" >/dev/null 2>&1; then
+            git branch "releases/$major" "$RELEASE_TAG"
+            git push origin "refs/heads/releases/$major"
+            echo "Created branch releases/$major"
+          fi
