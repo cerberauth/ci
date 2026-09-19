@@ -28,6 +28,7 @@ jobs:
           stale-issue-label: "stale"
           days-before-stale: 120
           days-before-close: 30
-          exempt-issue-labels: "enhancement"
+          exempt-issue-labels: "enhancement,bug"
+          exempt-pr-labels: "wip"
           exempt-milestones: true
           exempt-assignees: true
