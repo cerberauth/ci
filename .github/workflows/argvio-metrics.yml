@@ -1,0 +1,96 @@
+name: "Argvio metric catalog"
+
+# Validates a CLI's argvio.metrics.yaml and, when sync is true, replaces the
+# CLI's catalog in Argvio with it (PUT /v1/metric-definitions/{service}), as
+# described in getargvio/argvio docs/metric-catalog.md.
+#
+# Caller example:
+#
+#   on:
+#     pull_request:
+#       paths: [argvio.metrics.yaml]
+#     release:
+#       types: [published]
+#     workflow_dispatch:
+#   jobs:
+#     argvio-metrics:
+#       uses: cerberauth/ci/.github/workflows/argvio-metrics.yml@main
+#       with:
+#         sync: ${{ github.event_name != 'pull_request' }}
+#       secrets:
+#         ARGVIO_METRICS_ADMIN_KEY: ${{ secrets.ARGVIO_METRICS_ADMIN_KEY }}
+
+on:
+  workflow_call:
+    inputs:
+      file:
+        description: "Path of the catalog file"
+        type: string
+        default: "argvio.metrics.yaml"
+      sync:
+        description: "Replace the CLI's catalog in Argvio with the file (needs the ARGVIO_METRICS_ADMIN_KEY secret)"
+        type: boolean
+        default: false
+      metrics-url:
+        description: "Base URL of the Argvio metrics API"
+        type: string
+        default: "https://cbth-argvio.emmanuelgautier.ovh/api/metrics"
+      argvio-version:
+        description: "Version of the argvio CLI used to validate the file"
+        type: string
+        default: "0.7.0"
+    secrets:
+      ARGVIO_METRICS_ADMIN_KEY:
+        description: "The CLI tenant's metrics_admin API key"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  catalog:
+    name: Validate${{ inputs.sync && ' and sync' || '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install argvio
+        env:
+          VERSION: ${{ inputs.argvio-version }}
+        run: |
+          set -euo pipefail
+          base="https://github.com/getargvio/argvio/releases/download/v${VERSION}"
+          archive="argvio_Linux_x86_64.tar.gz"
+          cd "$RUNNER_TEMP"
+          curl -fsSLO "$base/$archive"
+          curl -fsSLO "$base/checksums.txt"
+          grep " ${archive}\$" checksums.txt | sha256sum -c -
+          tar -xzf "$archive" argvio
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Validate
+        env:
+          FILE: ${{ inputs.file }}
+        run: argvio metric validate -f "$FILE"
+
+      - name: Sync to Argvio
+        if: inputs.sync
+        env:
+          FILE: ${{ inputs.file }}
+          METRICS_URL: ${{ inputs.metrics-url }}
+          ARGVIO_METRICS_ADMIN_KEY: ${{ secrets.ARGVIO_METRICS_ADMIN_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ARGVIO_METRICS_ADMIN_KEY" ]; then
+            echo "::warning::ARGVIO_METRICS_ADMIN_KEY is not set, the catalog was not synced"
+            exit 0
+          fi
+          service=$(sed -n 's/^service:[[:space:]]*\([A-Za-z0-9._-]*\).*/\1/p' "$FILE" | head -1)
+          [ -n "$service" ] || { echo "::error::no service: in $FILE"; exit 1; }
+          curl -fsS -X PUT "${METRICS_URL%/}/v1/metric-definitions/${service}" \
+            -H "Authorization: Bearer ${ARGVIO_METRICS_ADMIN_KEY}" \
+            -H "Content-Type: application/yaml" \
+            --data-binary "@${FILE}"
+          echo

@@ -28,6 +28,17 @@ Publishes a Go project via GoReleaser with Docker Hub, GHCR, Snapcraft, and Choc
 
 Runs CodeQL analysis for Go projects (analyzes both `go` and `actions` languages).
 
+### `argvio-metrics.yml`
+
+Validates a CLI's `argvio.metrics.yaml` (the
+[Argvio metric catalog](https://github.com/getargvio/argvio/blob/main/docs/metric-catalog.md))
+with the `argvio` CLI. With `sync: true`, it also replaces the CLI's catalog
+in Argvio through `PUT /v1/metric-definitions/{service}`, using the
+`ARGVIO_METRICS_ADMIN_KEY` secret (the CLI tenant's `metrics_admin` key,
+printed by `argvio-bootstrap` in `cerberauth/infrastructure`). Without the
+secret the sync is skipped with a warning. Run it with `sync: false` on pull
+requests and with `sync: true` on release.
+
 ### JavaScript / TypeScript actions
 
 `vulnapi-action`, `jwtop-action` and `stubidp-action` share these:
