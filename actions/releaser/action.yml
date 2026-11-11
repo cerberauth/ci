@@ -94,9 +94,8 @@ runs:
     - name: Install Snapcraft
       if: ${{ inputs.package-name != '' && inputs.snapcraft-store-credentials != '' }}
       shell: bash
+      # snapd is preinstalled on GitHub-hosted Ubuntu runners; avoid apt so a mirror outage cannot fail the release
       run: |
-        sudo apt-get --quiet update
-        sudo apt-get --no-install-suggests --no-install-recommends --quiet --yes install musl-tools snapd
         sudo snap install snapcraft --classic
         snapcraft status ${{ inputs.package-name }}
         mkdir -p $HOME/.cache/snapcraft/download
