@@ -23,9 +23,6 @@ on:
         description: "Codecov upload token (required for private repositories)."
         required: false
 
-permissions:
-  contents: read
-
 jobs:
   test-typescript:
     name: TypeScript Tests
