@@ -43,6 +43,14 @@ Runs CodeQL analysis for Go projects (analyzes both `go` and `actions` languages
 - `action-release.yml` — on `release: published`, syncs the major-version tag
   (`v1`) and `releases/v1` branch.
 
+To install `@cerberauth` packages from GitHub Packages, add this `.npmrc` and
+grant `packages: read`:
+
+```ini
+@cerberauth:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+```
+
 ## License
 
 [MIT](./LICENSE)
